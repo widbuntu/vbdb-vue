@@ -26,6 +26,7 @@ export default defineConfig({
       },
     }),
   ],
+  base: '/vbdb-vue/',
   define: { 'process.env': {} },
   resolve: {
     alias: {
