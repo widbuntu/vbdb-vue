@@ -1,4 +1,5 @@
 <template>
+  <v-container class="container-fluid">
         <v-card class="custom-card">
           <v-card-title class="text-center custom-title">
             <h2>Teams Data</h2>
@@ -29,6 +30,7 @@
             </v-data-table>
           </div>
         </v-card>
+      </v-container>
 </template>
 
 <script>
