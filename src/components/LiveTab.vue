@@ -1,6 +1,4 @@
 <template>
-  <v-app class="custom-theme">
-    <v-main>
       <v-container class="container-fluid">
         <v-card class="custom-card">
           <v-card-title class="text-center custom-title">
@@ -26,9 +24,7 @@
               </v-select>
             </v-col>
           </v-row>
-        </div>
 
-        <div class="container-fluid">
             <v-table
               class="custom-table"
               :items-per-page="-1"
@@ -64,8 +60,6 @@
           </div>
         </v-card>
       </v-container>
-    </v-main>
-  </v-app>
 </template>
 
 <script>

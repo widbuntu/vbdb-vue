@@ -1,7 +1,4 @@
 <template>
-  <v-app class="custom-theme">
-    <v-main>
-      <v-container class="container-fluid">
         <v-card class="custom-card">
           <v-card-title class="text-center custom-title">
             <h2>Players 2024</h2>
@@ -23,9 +20,6 @@
                 ></v-select>
               </v-col>
             </v-row>
-          </div>
-
-          <div class="container-fluid">
             <v-data-table
               :headers="headers"
               :items="filteredPlayerRows"
@@ -40,9 +34,6 @@
             </v-data-table>
           </div>
         </v-card>
-      </v-container>
-    </v-main>
-  </v-app>
 </template>
 
 <script>
@@ -72,7 +63,6 @@ export default {
       { id: 'team-players', label: 'Select a Team' },
       { id: 'class-players', label: 'Select a Class' },
       { id: 'position-players', label: 'Select a Position' },
-      { id: 'hometown-players', label: 'Select a Hometown' }
     ]
 
     const selectedDropdown = reactive({
@@ -80,7 +70,6 @@ export default {
       'team-players': '',
       'class-players': '',
       'position-players': '',
-      'hometown-players': ''
     })
 
     const dropdownOptions = reactive({
@@ -88,7 +77,6 @@ export default {
       'team-players': [],
       'class-players': [],
       'position-players': [],
-      'hometown-players': []
     })
 
     const parseCSV = (csvData) => {
@@ -134,14 +122,13 @@ export default {
         'team-players': 'team',
         'class-players': 'class',
         'position-players': 'position',
-        'hometown-players': 'hometown'
       }
 
       Object.entries(columns).forEach(([key, value]) => {
     const uniqueOptions = new Set(data.map(row => row[value]).filter(Boolean));
     
     // Sort conference options
-    if (key === 'conference-players'|| key === 'hometown-players') {
+    if (key === 'conference-players') {
       dropdownOptions[key] = ['All', ...Array.from(uniqueOptions).sort()]; // Add "All" and sort
     } else {
       dropdownOptions[key] = ['All', ...Array.from(uniqueOptions)]; // Just add "All" for other options
@@ -174,8 +161,7 @@ export default {
           (!selectedDropdown['conference-players'] || selectedDropdown['conference-players'] === 'All' || row.conference === selectedDropdown['conference-players']) &&
           (!selectedDropdown['team-players'] || selectedDropdown['team-players'] === 'All' || row.team === selectedDropdown['team-players']) &&
           (!selectedDropdown['class-players'] || selectedDropdown['class-players'] === 'All' || row.class === selectedDropdown['class-players']) &&
-          (!selectedDropdown['position-players'] || selectedDropdown['position-players'] === 'All' || row.position === selectedDropdown['position-players']) &&
-          (!selectedDropdown['hometown-players'] || selectedDropdown['hometown-players'] === 'All' || row.hometown.includes(selectedDropdown['hometown-players']))
+          (!selectedDropdown['position-players'] || selectedDropdown['position-players'] === 'All' || row.position === selectedDropdown['position-players'])
         )
       })
     }

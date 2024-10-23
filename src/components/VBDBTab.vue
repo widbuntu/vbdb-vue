@@ -1,6 +1,4 @@
 <template>
-  <v-app class="custom-theme" full-height="900">
-    <v-main>
       <v-container class="container-fluid">
         <v-card class="custom-card">
           <v-card-title class="text-center custom-title">
@@ -30,8 +28,6 @@
       </div>
     </v-card>
       </v-container>
-    </v-main>
-  </v-app>
 </template>
 
 <script>

@@ -1,7 +1,4 @@
 <template>
-  <v-app class="custom-theme">
-    <v-main>
-      <v-container class="container-fluid">
         <v-card class="custom-card">
           <v-card-title class="text-center custom-title">
             <h2>Teams Data</h2>
@@ -21,9 +18,7 @@
                   class="custom-search form-select-sm" variant="outlined"></v-text-field>
               </v-col>
             </v-row>
-          </div>
 
-          <div class="container-fluid">
             <v-data-table :headers="headers" :items="filteredTeams" :search="search" :items-per-page="-1"
               :loading="loading" class="custom-table" fixed-header height="480px" :hover="true" :striped="true">
               <template v-slot:[`item.school_athletic_url`]="{ item }">
@@ -34,9 +29,6 @@
             </v-data-table>
           </div>
         </v-card>
-      </v-container>
-    </v-main>
-  </v-app>
 </template>
 
 <script>

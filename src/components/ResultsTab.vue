@@ -1,82 +1,47 @@
 <template>
-  <v-app class="custom-theme">
-    <v-main>
       <v-container class="container-fluid">
         <v-card class="custom-card">
           <v-card-title class="text-center custom-title">
             <h2>Results 2024</h2>
           </v-card-title>
           <v-spacer></v-spacer>
-          
+
           <div class="container-fluid">
             <v-row class="mb-3 align-center">
               <v-col cols="12" md="3">
-                <v-select
-                  v-model="selectedConference"
-                  :items="conferences"
-                  item-title="title"
-                  item-value="value"
-                  label="Select a Conference"
-                  class="custom-dropdown form-select-sm"
-                  variant="outlined"
-                  :transition="false"
-                  @update:model-value="updateTeamDropdown"
-                >
-                <template v-slot:selection="{ item }">
-                  {{ item?.title || 'Select Conference' }}
-                </template>
+                <v-select v-model="selectedConference" :items="conferences" item-title="title" item-value="value"
+                  label="Select a Conference" class="custom-dropdown form-select-sm" variant="outlined"
+                  :transition="false" @update:model-value="updateTeamDropdown">
+                  <template v-slot:selection="{ item }">
+                    {{ item?.title || 'Select Conference' }}
+                  </template>
                 </v-select>
               </v-col>
-              
+
               <v-col cols="12" md="3">
-                <v-select
-  v-model="selectedTeam"
-  :items="filteredTeams"
-  label="Select a Team"
-  clearable
-  class="custom-dropdown form-select-sm"
-  variant="outlined"
-  :transition="false"
-  item-title="team_short"
-  item-value="team_short"
->
-<template v-slot:prepend-item>
-    <v-list-item title="All Teams" @click="selectedTeam = ''">
-    </v-list-item>
-  </template>
-</v-select>
+                <v-select v-model="selectedTeam" :items="filteredTeams" label="Select a Team" clearable
+                  class="custom-dropdown form-select-sm" variant="outlined" :transition="false" item-title="team_short"
+                  item-value="team_short">
+                  <template v-slot:prepend-item>
+                    <v-list-item title="All Teams" @click="selectedTeam = ''">
+                    </v-list-item>
+                  </template>
+                </v-select>
               </v-col>
-              
+
               <v-col cols="12" md="3">
-                <v-text-field
-                  v-model="startDate"
-                  label="Start Date"
-                  type="date"
-                  class="custom-dropdown form-select-sm"
-                  variant="outlined"
-                  :transition="false"
-                ></v-text-field>
+                <v-text-field v-model="startDate" label="Start Date" type="date" class="custom-dropdown form-select-sm"
+                  variant="outlined" :transition="false"></v-text-field>
               </v-col>
-              
+
               <v-col cols="12" md="3">
-                <v-text-field
-                  v-model="endDate"
-                  label="End Date"
-                  type="date"
-                  class="custom-dropdown form-select-sm"
-                  variant="outlined"
-                  :transition="false"
-                ></v-text-field>
+                <v-text-field v-model="endDate" label="End Date" type="date" class="custom-dropdown form-select-sm"
+                  variant="outlined" :transition="false"></v-text-field>
               </v-col>
             </v-row>
-          </div>
 
-          <div class="container-fluid">
-            <v-table
-              class="custom-table"
-              :items-per-page="-1"
-              fixed-header height="480px" :hover="true" :striped="true"
-            >
+            <v-table class="custom-table" :items-per-page="-1" fixed-header height="480px" :hover="true"
+              :striped="true">
               <thead>
                 <tr>
                   <th>Date</th>
@@ -99,8 +64,6 @@
           <div v-if="filteredRows.length === 0" class="text-center pa-4">No results found.</div>
         </v-card>
       </v-container>
-    </v-main>
-  </v-app>
 </template>
 <script>
 import { ref, onMounted, computed } from 'vue';
@@ -152,8 +115,8 @@ export default {
     const teams = ref([]);
 
     const filteredRows = computed(() => {
-    const uniqueRows = new Set();
-    return allResultRows.value.filter(row => {
+      const uniqueRows = new Set();
+      return allResultRows.value.filter(row => {
         const rowDate = new Date(row.date);
 
         // Conference and Team filtering logic
@@ -167,8 +130,8 @@ export default {
         uniqueRows.add(rowKey);
 
         return conferenceMatch && teamMatch && dateMatch && isUnique;
+      });
     });
-});
 
     // Split a CSV line into an array
     function splitLine(line) {
@@ -210,13 +173,13 @@ export default {
       const csvData = await response.text();
       return csvData.split('\n').slice(1).map(row => {
         const [team_id, conference_short, conference_name, team_name, division, team_short] = splitLine(row);
-        return { 
-          team_id, 
-          conference_short: conference_short ? conference_short.trim() : '', 
-          conference_name: conference_name ? conference_name.trim() : '', 
-          team_name: team_name ? team_name.trim() : '', 
-          division: division ? division.trim() : '', 
-          team_short: team_short ? team_short.trim() : '' 
+        return {
+          team_id,
+          conference_short: conference_short ? conference_short.trim() : '',
+          conference_name: conference_name ? conference_name.trim() : '',
+          team_name: team_name ? team_name.trim() : '',
+          division: division ? division.trim() : '',
+          team_short: team_short ? team_short.trim() : ''
         };
       }).filter(team => team.team_id); // Ensure team_id exists
     }
@@ -243,11 +206,11 @@ export default {
     };
 
     const filteredTeams = computed(() => {
-  // If "All Conferences" is selected, return all teams
-  if (!selectedConference.value) return teams.value;
+      // If "All Conferences" is selected, return all teams
+      if (!selectedConference.value) return teams.value;
 
-  return teams.value.filter(team => team.conference_short === selectedConference.value);
-});
+      return teams.value.filter(team => team.conference_short === selectedConference.value);
+    });
 
     onMounted(() => {
       loadData();
