@@ -1,67 +1,143 @@
 <template>
-  <div>
-    <h2 class="text-center">Results 2024</h2>
-    <div v-if="loading">Loading...</div>
-    <div v-else>
-      <div class="container-fluid">
-        <div class="row mb-3">
-          <div class="col-md-3">
-            <label for="conferenceShort">Conference:</label>
-            <select v-model="selectedConference" @change="updateTeamDropdown" class="form-select form-select-sm">
-              <option value="">All Conferences</option>
-              <option v-for="conf in conferences" :key="conf" :value="conf">{{ conf }}</option>
-            </select>
+  <v-app class="custom-theme">
+    <v-main>
+      <v-container class="container-fluid">
+        <v-card class="custom-card">
+          <v-card-title class="text-center custom-title">
+            <h2>Results 2024</h2>
+          </v-card-title>
+          <v-spacer></v-spacer>
+          
+          <div class="container-fluid">
+            <v-row class="mb-3 align-center">
+              <v-col cols="12" md="3">
+                <v-select
+                  v-model="selectedConference"
+                  :items="conferences"
+                  item-title="title"
+                  item-value="value"
+                  label="Select a Conference"
+                  class="custom-dropdown form-select-sm"
+                  variant="outlined"
+                  :transition="false"
+                  @update:model-value="updateTeamDropdown"
+                >
+                <template v-slot:selection="{ item }">
+                  {{ item?.title || 'Select Conference' }}
+                </template>
+                </v-select>
+              </v-col>
+              
+              <v-col cols="12" md="3">
+                <v-select
+  v-model="selectedTeam"
+  :items="filteredTeams"
+  label="Select a Team"
+  clearable
+  class="custom-dropdown form-select-sm"
+  variant="outlined"
+  :transition="false"
+  item-title="team_short"
+  item-value="team_short"
+>
+<template v-slot:prepend-item>
+    <v-list-item title="All Teams" @click="selectedTeam = ''">
+    </v-list-item>
+  </template>
+</v-select>
+              </v-col>
+              
+              <v-col cols="12" md="3">
+                <v-text-field
+                  v-model="startDate"
+                  label="Start Date"
+                  type="date"
+                  class="custom-dropdown form-select-sm"
+                  variant="outlined"
+                  :transition="false"
+                ></v-text-field>
+              </v-col>
+              
+              <v-col cols="12" md="3">
+                <v-text-field
+                  v-model="endDate"
+                  label="End Date"
+                  type="date"
+                  class="custom-dropdown form-select-sm"
+                  variant="outlined"
+                  :transition="false"
+                ></v-text-field>
+              </v-col>
+            </v-row>
           </div>
-          <div class="col-md-3">
-            <label for="team">Team:</label>
-            <select v-model="selectedTeam" class="form-select form-select-sm">
-              <option value="">All Teams</option>
-              <option v-for="team in filteredTeams" :key="team.team_id" :value="team.team_short">{{ team.team_short }}</option>
-            </select>
-          </div>
-          <div class="col-md-3">
-            <label for="startDate">Start Date:</label>
-            <input type="date" v-model="startDate" class="form-control form-select-sm">
-          </div>
-          <div class="col-md-3">
-            <label for="endDate">End Date:</label>
-            <input type="date" v-model="endDate" class="form-control form-select-sm">
-          </div>
-        </div>
-      </div>
-      <div class="table-responsive" style="overflow-x: auto">
-        <table id="resultsTable" class="table table-dark table-hover table-striped">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Match</th>
-              <th>Results</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="row in filteredRows" :key="row.date + row.match">
-              <td>{{ row.date }}</td>
-              <td v-html="row.match"></td>
-              <td>
-                {{ row.results }}
-                <a :href="row.boxScoreUrl" target="_blank">View</a>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      <div v-if="filteredRows.length === 0">No results found.</div>
-    </div>
-  </div>
-</template>
 
+          <div class="container-fluid">
+            <v-table
+              class="custom-table"
+              :items-per-page="-1"
+              fixed-header height="480px" :hover="true" :striped="true"
+            >
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Match</th>
+                  <th>Results</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="row in filteredRows" :key="row.date + row.match">
+                  <td>{{ row.date }}</td>
+                  <td v-html="row.match"></td>
+                  <td>
+                    {{ row.results }}
+                    <a :href="row.boxScoreUrl" target="_blank" class="custom-link">View</a>
+                  </td>
+                </tr>
+              </tbody>
+            </v-table>
+          </div>
+          <div v-if="filteredRows.length === 0" class="text-center pa-4">No results found.</div>
+        </v-card>
+      </v-container>
+    </v-main>
+  </v-app>
+</template>
 <script>
 import { ref, onMounted, computed } from 'vue';
 
 const conferences = [
-  'A-10', 'AAC', 'ACC', 'AE', 'ASUN', 'BE', 'BSC', 'BWC', 'Big 12', 'Big Ten',
-  'C-USA', 'CAA', 'HL', 'Ivy', 'MAAC', 'MAC', 'MEAC', 'MVC', 'MW', 'NEC', 'OVC',
-  'PL', 'Pac-12', 'SBC', 'SEC', 'SLC', 'SWAC', 'SoCon', 'Summit', 'WAC', 'WCC'
+  { title: 'All Conferences', value: '' },
+  { title: 'A-10', value: 'A-10' },
+  { title: 'AAC', value: 'AAC' },
+  { title: 'ACC', value: 'ACC' },
+  { title: 'AE', value: 'AE' },
+  { title: 'ASUN', value: 'ASUN' },
+  { title: 'BE', value: 'BE' },
+  { title: 'BSC', value: 'BSC' },
+  { title: 'BWC', value: 'BWC' },
+  { title: 'Big 12', value: 'Big 12' },
+  { title: 'Big Ten', value: 'Big Ten' },
+  { title: 'C-USA', value: 'C-USA' },
+  { title: 'CAA', value: 'CAA' },
+  { title: 'HL', value: 'HL' },
+  { title: 'Ivy', value: 'Ivy' },
+  { title: 'MAAC', value: 'MAAC' },
+  { title: 'MAC', value: 'MAC' },
+  { title: 'MEAC', value: 'MEAC' },
+  { title: 'MVC', value: 'MVC' },
+  { title: 'MW', value: 'MW' },
+  { title: 'NEC', value: 'NEC' },
+  { title: 'OVC', value: 'OVC' },
+  { title: 'PL', value: 'PL' },
+  { title: 'Pac-12', value: 'Pac-12' },
+  { title: 'SBC', value: 'SBC' },
+  { title: 'SEC', value: 'SEC' },
+  { title: 'SLC', value: 'SLC' },
+  { title: 'SWAC', value: 'SWAC' },
+  { title: 'SoCon', value: 'SoCon' },
+  { title: 'Summit', value: 'Summit' },
+  { title: 'WAC', value: 'WAC' },
+  { title: 'WCC', value: 'WCC' },
 ];
 
 export default {
@@ -75,15 +151,17 @@ export default {
     const loading = ref(true);
     const teams = ref([]);
 
-const filteredRows = computed(() => {
+    const filteredRows = computed(() => {
     const uniqueRows = new Set();
     return allResultRows.value.filter(row => {
         const rowDate = new Date(row.date);
+
+        // Conference and Team filtering logic
         const conferenceMatch = !selectedConference.value || row.match.includes(`(${selectedConference.value})`);
         const teamMatch = !selectedTeam.value || row.match.includes(selectedTeam.value);
         const dateMatch = rowDate >= new Date(startDate.value) && rowDate <= new Date(endDate.value);
 
-        // Check if the current row's match has been seen before
+        // Ensure unique rows
         const rowKey = `${row.date}-${row.match}`;
         const isUnique = !uniqueRows.has(rowKey);
         uniqueRows.add(rowKey);
@@ -165,19 +243,11 @@ const filteredRows = computed(() => {
     };
 
     const filteredTeams = computed(() => {
-      // Log current conference selection for debugging
-      console.log("Selected Conference:", selectedConference.value);
-      
-      if (!selectedConference.value) return teams.value;
+  // If "All Conferences" is selected, return all teams
+  if (!selectedConference.value) return teams.value;
 
-      // Check if teams array has the expected structure
-      if (teams.value.length > 0 && teams.value[0].conference_short !== undefined) {
-        return teams.value.filter(team => team.conference_short === selectedConference.value);
-      } else {
-        console.error("Invalid team structure or conference_short is undefined");
-        return [];
-      }
-    });
+  return teams.value.filter(team => team.conference_short === selectedConference.value);
+});
 
     onMounted(() => {
       loadData();
@@ -197,3 +267,11 @@ const filteredRows = computed(() => {
   }
 }
 </script>
+<style>
+.v-table th,
+.v-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left !important;
+}
+</style>

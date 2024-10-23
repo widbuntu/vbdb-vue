@@ -1,168 +1,211 @@
 <template>
-  <div>
-    <h2 class="text-center">Teams 2024</h2>
-    
-    <div class="container-fluid mb-3">
-      <div class="row">
-        <div class="col-auto">
-          <select
-            class="form-select form-select-sm"
-            v-model="selectedConference"
-            @change="filterTeams"
-          >
-            <option value="">Select Conference</option>
-            <option v-for="conference in uniqueConferences" :key="conference" :value="conference">
-              {{ conference }}
-            </option>
-          </select>
-        </div>
-        <div class="col-auto">
-          <input
-            type="text"
-            v-model="searchQuery"
-            @input="filterTeams"
-            placeholder="Search teams..."
-            class="form-control form-control-sm"
-            aria-label="Search teams"
-          />
-        </div>
-      </div>
-    </div>
+  <v-app class="custom-theme">
+    <v-main>
+      <v-container class="container-fluid">
+        <v-card class="custom-card">
+          <v-card-title class="text-center custom-title">
+            <h2>Teams Data</h2>
+          </v-card-title>
+          <v-spacer></v-spacer>
+          <div class="container-fluid">
+            <v-row class="mb-3 align-center">
+              <v-col>
+                <!-- Conference Dropdown -->
+                <v-select v-model="selectedConference" :transition="false" :items="conferenceOptions"
+                  label="Select a Conference" clearable class="custom-dropdown form-select-sm"
+                  variant="outlined"></v-select>
+              </v-col>
+              <v-col>
+                <!-- Search Text Field -->
+                <v-text-field v-model="search" label="Search all..." :transition="false" single-line
+                  class="custom-search form-select-sm" variant="outlined"></v-text-field>
+              </v-col>
+            </v-row>
+          </div>
 
-    <div v-if="loading">Loading...</div>
-    <div v-else>
-      <div class="table-responsive">
-        <table class="table table-dark table-hover table-striped">
-          <thead>
-            <tr>
-              <th>Team Name</th>
-              <th>Conference</th>
-              <th>School URL</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="team in filteredTeams" :key="team.team_name">
-              <td>{{ team.team_name }}</td>
-              <td>{{ team.conference_short }}</td>
-              <td>
-                <a :href="team.school_athletic_url" target="_blank">{{ team.school_athletic_url }}</a>
-              </td>
-            </tr>
-            <tr v-if="filteredTeams.length === 0">
-              <td colspan="3" class="text-center">No teams found.</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
+          <div class="container-fluid">
+            <v-data-table :headers="headers" :items="filteredTeams" :search="search" :items-per-page="-1"
+              :loading="loading" class="custom-table" fixed-header height="480px" :hover="true" :striped="true">
+              <template v-slot:[`item.school_athletic_url`]="{ item }">
+                <a :href="`https://${item.school_athletic_url}`" target="_blank" class="custom-link">
+                  {{ item.school_athletic_url }}
+                </a>
+              </template>
+            </v-data-table>
+          </div>
+        </v-card>
+      </v-container>
+    </v-main>
+  </v-app>
 </template>
 
 <script>
-function splitLine(line) {
-  const result = [];
-  let currentField = "";
-  let inQuotes = false;
-
-  for (let char of line) {
-      if (char === '"') {
-          inQuotes = !inQuotes; // Toggle quote state
-      } else if (char === "," && !inQuotes) {
-          result.push(currentField.trim()); // Push field and reset
-          currentField = "";
-      } else {
-          currentField += char; // Accumulate characters in current field
-      }
-  }
-
-  result.push(currentField.trim()); // Push the last field
-  return result;
-}
+import { ref, computed } from 'vue'
+import Papa from 'papaparse'
 
 export default {
-  data() {
-    return {
-      loading: true,
-      teams: [],
-      selectedConference: "",
-      searchQuery: "", // For storing search input
-      filteredTeams: [],
-    };
-  },
-  computed: {
-    uniqueConferences() {
-      return [...new Set(this.teams.map(team => team.conference_name))];
-    },
-  },
-  methods: {
-    async fetchTeams() {
+  name: 'App',
+  setup() {
+    const search = ref('')
+    const selectedConference = ref('All Conferences')  // Set default value to "All Conferences"
+    const loading = ref(true)
+    const teams = ref([])
+    const headers = ref([
+      { title: 'Team Name', align: 'start', sortable: true, key: 'team_name' },
+      { title: 'Conference', align: 'start', sortable: true, key: 'conference_short' },
+      // { title: 'Conference Name', align: 'start', sortable: true, key: 'conference_name' },
+      { title: 'Athletic URL', align: 'start', sortable: true, key: 'school_athletic_url' },
+      // { title: 'Division', align: 'start', sortable: true, key: 'division' }
+    ])
+
+    const conferenceOptions = ref([])
+
+    const fetchData = async () => {
       try {
         const response = await fetch('https://raw.githubusercontent.com/widbuntu/vbdb-info/refs/heads/main/data/teams.csv');
-        if (!response.ok) {
-          throw new Error('Network response was not ok');
-        }
-        const text = await response.text();
-        const parsedData = this.parseCSV(text);
-        
-        console.log('Parsed Data:', parsedData);
-        
-        this.teams = parsedData;
-        this.filteredTeams = parsedData; // Initially, show all teams
-        this.loading = false;
+        const csvData = await response.text();
+
+        Papa.parse(csvData, {
+          header: true,
+          complete: (results) => {
+            // Filter out entries with blank team_name or conference_short
+            const filteredData = results.data.filter(item =>
+              item.team_name && item.conference_name // Check for truthy values
+            );
+
+            teams.value = filteredData; // Update teams with filtered data
+            loading.value = false;
+            populateConferenceOptions(filteredData); // Use filtered data for conference options
+          }
+        });
       } catch (error) {
-        console.error('Failed to fetch teams:', error);
-        this.loading = false;
+        console.error('Error fetching CSV:', error);
+        loading.value = false;
       }
-    },
-    parseCSV(csv) {
-      const rows = csv.trim().split('\n').slice(1); // Trim and skip header
-      return rows.map(row => {
-        const cols = splitLine(row);
-        return {
-          team_name: cols[0].replace(/"/g, ''),
-          conference_short: cols[1].replace(/"/g, ''),
-          school_athletic_url: cols[2].replace(/"/g, ''),
-          conference_name: cols[3].replace(/"/g, ''),
-          division: cols[4].replace(/"/g, ''),
-        };
-      });
-    },
-    filterTeams() {
-      // Filter teams based on the selected conference and search query
-      this.filteredTeams = this.teams.filter(team => {
-        const matchesConference = !this.selectedConference || team.conference_name === this.selectedConference;
-        const matchesSearch = team.team_name.toLowerCase().includes(this.searchQuery.toLowerCase());
-        return matchesConference && matchesSearch;
-      });
-    },
-  },
-  created() {
-    this.fetchTeams();
-  },
-};
+    };
+
+    const populateConferenceOptions = (data) => {
+      // Extract unique conference names from the filtered data
+      const conferences = [...new Set(data.map(team => team.conference_name))].sort();
+      conferenceOptions.value = ['All Conferences', ...conferences]; // Add "All Conferences"
+    };
+
+    // Filter teams based on the selected conference
+    const filteredTeams = computed(() => {
+      if (selectedConference.value === 'All Conferences') {
+        return teams.value;
+      }
+      return teams.value.filter(team => team.conference_name === selectedConference.value);
+    });
+
+    fetchData()
+
+    return {
+      search,
+      loading,
+      teams,
+      headers,
+      conferenceOptions,
+      selectedConference,
+      filteredTeams
+    }
+  }
+}
 </script>
 
-<style scoped>
-.form-control {
-  border-radius: 0.375rem;
-  border: 1px solid #ccc;
-  transition: border-color 0.2s ease;
+<style>
+/* Global styles */
+:root {
+  --background-dark: #212529;
+  --surface-dark: #343a40;
+  --border-color: #495057;
+  --text-color: #f8f9fa;
+  --header-bg: #333;
 }
 
-.form-control:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+.custom-theme {
+  font-family: 'Hack Nerd Font', sans-serif !important;
+  background-color: var(--background-dark) !important;
+  color: var(--text-color) !important;
+  max-height: 800px;
 }
 
-/* Modernizing the select dropdown */
-.form-select {
-  border-radius: 0.375rem;
-  border: 1px solid #ccc;
-  transition: border-color 0.2s ease;
+.custom-card {
+  background-color: var(--surface-dark) !important;
+  color: var(--text-color) !important;
+  border: 1px solid var(--border-color) !important;
 }
 
-.form-select:focus {
-  border-color: #007bff;
-  box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+.custom-title {
+  color: var(--text-color) !important;
+  font-size: 1.25rem !important;
+}
+
+.custom-search {
+  color: var(--text-color) !important;
+}
+
+.custom-search .v-field {
+  color: var(--text-color) !important;
+  background-color: var(--surface-dark) !important;
+  border-color: var(--border-color) !important;
+}
+
+.custom-search .v-field__input {
+  color: var(--text-color) !important;
+}
+
+.custom-search label {
+  color: var(--text-color) !important;
+}
+
+.custom-dropdown {
+  color: var(--text-color) !important;
+}
+
+.custom-table {
+  background-color: var(--surface-dark) !important;
+  color: var(--text-color) !important;
+}
+
+
+.custom-table .v-data-table-header {
+  background-color: var(--header-bg) !important;
+  position: sticky !important;
+  top: 0 !important;
+}
+
+.custom-table th {
+  color: white !important;
+  font-weight: bold !important;
+  background-color: var(--header-bg) !important;
+  border: 1px solid var(--border-color) !important;
+  text-align: center !important;
+  padding: 6px !important;
+}
+
+.custom-table td {
+  color: var(--text-color) !important;
+  border: 1px solid #495057 !important;
+  padding: 6px !important;
+  font-size: 12px !important;
+}
+
+/* Striped rows */
+.custom-table tr:nth-child(even) {
+  background-color: #2b2b2b;
+}
+
+.custom-table tr:nth-child(odd) {
+  background-color: var(--surface-dark);
+}
+
+.custom-link {
+  color: #8ab4f8 !important;
+  text-decoration: none;
+}
+
+.custom-link:hover {
+  text-decoration: underline;
 }
 </style>

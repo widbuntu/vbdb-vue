@@ -1,114 +1,210 @@
 <template>
-    <div id="live">
-      <h2 class="text-center">Today's scores</h2>
-      <div class="container-fluid">
-        <div class="row">
-          <div class="col-auto mb-3">
-            <select class="form-select form-select-sm" id="conference-live-dropdown" v-model="selectedConference">
-              <option value="">All Conferences</option>
-              <option v-for="conference in sortedConferences" :key="conference" :value="conference">{{ conference }}</option>
-            </select>
-          </div>
+  <v-app class="custom-theme">
+    <v-main>
+      <v-container class="container-fluid">
+        <v-card class="custom-card">
+          <v-card-title class="text-center custom-title">
+            <h2>Today's Scores</h2>
+          </v-card-title>
+          <div class="container-fluid">
+          <v-row class="mb-3 align-center">
+            <v-col cols="12" sm="6" md="4">
+              <v-select
+                v-model="selectedConference"
+                :items="conferencesWithAll"
+                item-title="title"
+                item-value="value"
+                label="Select a Conference"
+                class="custom-dropdown form-select-sm"
+                :transition="false"
+                variant="outlined"
+                return-object
+              >
+                <template v-slot:selection="{ item }">
+                  {{ item?.title || 'Select Conference' }}
+                </template>
+              </v-select>
+            </v-col>
+          </v-row>
         </div>
-      </div>
-      <div class="table-responsive" style="overflow-x: auto">
-        <table id="liveTable" class="table table-dark table-hover table-striped">
-          <thead>
-            <tr>
-              <th>Match</th>
-              <th>Results</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="(row, index) in filteredData" :key="index">
-              <td style="width:60%">{{ row.match.trim() }}</td>
-              <td style="width:40%">
-                {{ row.results.trim() }} <a :href="row.box_score_url.trim()" target="_blank">View</a>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </template>
+
+        <div class="container-fluid">
+            <v-table
+              class="custom-table"
+              :items-per-page="-1"
+              fixed-header height="480px" :hover="true" :striped="true"
+            >
+              <thead>
+                <tr>
+                  <th class="text-left" width="60%;">Match</th>
+                  <th class="text-left" width="40%;">Results</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, index) in filteredData" :key="index">
+                  <td>{{ row.match.trim() }}</td>
+                  <td>
+                    {{ row.results.trim() }}
+                    <v-btn
+                      :href="row.box_score_url.trim()"
+                      target="_blank"
+                      variant="text"
+                      density="compact"
+                      color="primary"
+                    >
+                      View
+                    </v-btn>
+                  </td>
+                </tr>
+                <tr v-if="filteredData.length === 0">
+                  <td colspan="2" class="text-center">No matches found</td>
+                </tr>
+              </tbody>
+            </v-table>
+          </div>
+        </v-card>
+      </v-container>
+    </v-main>
+  </v-app>
+</template>
+
+<script>
+export default {
+  name: 'LiveScores',
   
-  <script>
-  export default {
-    data() {
-      return {
-        allLiveData: [],
-        fetchInterval: null,
-        selectedConference: '',
-      };
+  data() {
+    return {
+      allLiveData: [],
+      fetchInterval: null,
+      selectedConference: { title: 'All Conferences', value: 'all' }, // Default selection
+      conferences: [],
+      loading: false,
+      error: null
+    }
+  },
+
+  computed: {
+    conferencesWithAll() {
+      // Add "All Conferences" as the first option
+      return [
+        { title: 'All Conferences', value: 'all' },
+        ...this.conferences
+      ];
     },
-    computed: {
-      sortedConferences() {
-        const conferences = new Set();
-        this.allLiveData.forEach(item => {
-          const match = item.match;
-          const conferenceRegex = /\(([^)]+)\)/g;
-          let match_;
-          while ((match_ = conferenceRegex.exec(match)) !== null) {
-            conferences.add(match_[1].trim());
+
+    filteredData() {
+      if (!this.selectedConference || this.selectedConference.value === 'all') {
+        return this.allLiveData;
+      }
+
+      const selectedConferenceValue = this.selectedConference.value;
+      
+      return this.allLiveData.filter(item => {
+        const matchConferenceRegex = /\(([^)]+)\)/g;
+        let matchConference;
+        while ((matchConference = matchConferenceRegex.exec(item.match)) !== null) {
+          if (matchConference[1].trim().toLowerCase() === selectedConferenceValue.toLowerCase()) {
+            return true;
           }
-        });
-        return Array.from(conferences).sort();
-      },
-      filteredData() {
-        if (this.selectedConference === '') {
-          return this.allLiveData;
         }
-        return this.allLiveData.filter(item => {
-          const matchConferenceRegex = /\(([^)]+)\)/g;
-          let matchConference;
-          while ((matchConference = matchConferenceRegex.exec(item.match)) !== null) {
-            if (matchConference[1].trim().toLowerCase() === this.selectedConference.toLowerCase()) {
-              return true;
-            }
-          }
-          return false;
-        });
-      },
+        return false;
+      });
+    }
+  },
+
+  methods: {
+    async fetchDataAndPopulate() {
+      this.loading = true;
+      try {
+        const response = await fetch('https://test-api-42b6a9daeff2.herokuapp.com/');
+        const data = await response.json();
+        this.allLiveData = data.data;
+        this.updateConferences();
+        console.log('Data refreshed at', new Date().toLocaleTimeString());
+      } catch (error) {
+        console.error('Error fetching data:', error);
+        this.error = 'Error loading data. Please try again later.';
+      } finally {
+        this.loading = false;
+      }
     },
-    methods: {
-      fetchDataAndPopulate() {
-        fetch('https://test-api-42b6a9daeff2.herokuapp.com/')
-          .then(response => response.json())
-          .then(data => {
-            this.allLiveData = data.data;
-            console.log('Data refreshed at', new Date().toLocaleTimeString());
-          })
-          .catch(error => {
-            console.error('Error fetching data:', error);
-            const tableBody = document.querySelector('#liveTable tbody');
-            tableBody.innerHTML = '<tr><td colspan="2">Error loading data. Please try again later.</td></tr>';
-          });
-      },
-      startPeriodicFetch() {
-        this.fetchDataAndPopulate();
-        this.fetchInterval = setInterval(this.fetchDataAndPopulate, 45000);
-      },
-      stopPeriodicFetch() {
+
+    updateConferences() {
+      const conferenceSet = new Set();
+      
+      this.allLiveData.forEach(item => {
+        const conferenceRegex = /\(([^)]+)\)/g;
+        let match;
+        while ((match = conferenceRegex.exec(item.match)) !== null) {
+          conferenceSet.add(match[1].trim());
+        }
+      });
+
+      // Convert conferences to the format expected by v-select
+      this.conferences = Array.from(conferenceSet)
+        .sort()
+        .map(conference => ({
+          title: conference,
+          value: conference
+        }));
+    },
+
+    startPeriodicFetch() {
+      this.fetchDataAndPopulate();
+      this.fetchInterval = setInterval(this.fetchDataAndPopulate, 45000);
+    },
+
+    stopPeriodicFetch() {
+      if (this.fetchInterval) {
         clearInterval(this.fetchInterval);
-      },
+        this.fetchInterval = null;
+      }
     },
-    created() {
-      this.startPeriodicFetch();
-    },
-    beforeDestroy() {
-      this.stopPeriodicFetch();
-    },
-    watch: {
-      selectedConference() {
-        this.filteredData;
-      },
-    },
-  };
-  </script>
-  
-  <style scoped>
-  .table-responsive {
-    overflow-x: auto;
+
+    handleVisibilityChange() {
+      if (document.hidden) {
+        this.stopPeriodicFetch();
+      } else {
+        this.startPeriodicFetch();
+      }
+    }
+  },
+
+  created() {
+    this.startPeriodicFetch();
+    document.addEventListener('visibilitychange', this.handleVisibilityChange);
+  },
+
+  beforeUnmount() {
+    this.stopPeriodicFetch();
+    document.removeEventListener('visibilitychange', this.handleVisibilityChange);
   }
-  </style>
-  
+}
+</script>
+
+<style scoped>
+.table-responsive {
+  overflow-x: auto;
+}
+
+.table-dark {
+  background-color: #212529;
+  color: white;
+}
+
+.v-table {
+  border-collapse: collapse;
+  width: 100%;
+}
+
+.v-table th,
+.v-table td {
+  padding: 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  text-align: left !important;
+}
+
+.v-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.075);
+}
+</style>
